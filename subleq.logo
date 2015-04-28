@@ -1,0 +1,35 @@
+#!/bin/bash
+logo <(cat <<'EOF'
+make "memory (array 80 0)
+make "program first :command.line
+
+openread :program
+setread :program
+make "i -1
+do.while [
+  make "words readlist
+  foreach :words [setitem sum :i # :memory ?]
+  make "i sum :i count :words
+] [not empty? :words]
+setread []
+close :program
+
+make "ip 0
+while [and greater? :ip -1 less? :ip count :memory] [
+  make "a item :ip :memory
+  make "b item sum 1 :ip :memory
+  make "c item sum 2 :ip :memory
+  make "ip sum :ip 3
+  ifelse [less? :a 0] [
+    setitem :b :memory ascii readchar
+  ][ifelse [less? :b 0] [
+    type char item :a :memory
+  ][
+    setitem :b :memory apply "difference map [ item ? :memory ] list :b :a
+    if [lessequal? item :b memory 0] [
+        make "ip :c
+    ]
+  ]]
+]
+bye
+EOF) - "$@"

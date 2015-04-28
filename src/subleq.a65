@@ -1,0 +1,217 @@
+; BASIC should prompt for program file name and open it 
+; as fd #1 before SYSing to this program.
+
+    mptr    = $fb
+    in      = $fd
+    val     = $fe
+    tmp     = $ff
+    CHKIN   = $ffc6
+    CHRIN   = $ffcf
+    CHROUT  = $ffd2
+    STATUS  = $90
+    POKE    = $97
+    SYS     = $9e
+    PRINT   = $99
+    OPEN    = $9f
+    INPUT_  = $84
+    CLOSE   = $A0
+    IF      = $8B
+    THEN    = $A7
+    GOTO    = $89
+    PLUS    = $AA
+    program = $c000
+
+basic:
+     .word $0801
+     .word L20, 10
+     .byt PRINT,'"',14,"Enter filename:punish.seq"
+     .res 10, 157
+     .byt '"',";",0
+L20: .word L30, 20
+     .byt POKE,"198,1:",POKE,"631,13",0
+L30: .word L40, 30
+     .byt OPEN,"1,0:",INPUT_,"1,fi$:",CLOSE,"1:",PRINT,0
+L40: .word L50, 40
+     .byt OPEN,"1,8,0,fi$",PLUS,'"',",s",'"',0
+L50: .word L60, 50
+     .byt OPEN,"15,8,15:",INPUT_,"15,ds,ds$:",CLOSE,"15",0
+L60: .word L70, 60
+     .byt IF,"ds",THEN,CLOSE,"1:",PRINT,"ds$:",GOTO,"10",0
+L70: .word L80, 70
+     .byt SYS,<(subleq/1000+48),<( (subleq .mod 1000)/100 + 48)
+     .byt <((subleq .mod 100)/10+48),<( subleq .mod 10 + 48 ),0
+L80: .word 0
+
+subleq:
+    ldx #1      ; fd 1
+    jsr CHKIN   ; set as input
+    lda #<program 
+    sta mptr
+    lda #>program
+    sta mptr+1
+
+    lda #0
+    sta in
+
+read_loop:
+    lda $90
+    and #$40
+    bne loaded
+    jsr CHRIN
+    pha
+
+got_char:
+    lda in
+    beq not_in_number
+
+in_number:
+    pla
+    cmp #20
+    bne not_space
+    beq not_digit
+
+not_space:
+    cmp #'-'
+    bne not_minus
+    beq not_digit
+
+not_minus:
+    cmp #'0'
+    bcc not_digit
+    cmp #':'
+    bcs not_digit
+
+got_digit:
+    sec
+    sbc #'0'
+    pha
+    lda val
+    jsr mul10
+    sta val
+    pla
+    bit in
+    bpl positive
+; negate the accumulator
+    eor #$ff
+    clc
+    adc #1
+
+positive:
+    clc
+    adc val
+    sta val
+    jmp read_loop
+
+not_digit:
+    pha
+    lda val
+    ldy #0
+    sta (mptr),y
+    inc mptr
+    bcc same_page
+    inc mptr+1
+
+same_page:
+    lda #0
+    sta in
+    sta val
+    jmp got_char
+
+not_in_number:
+    pla
+    cmp #'-'
+    bne not_negative
+    lda #$ff
+    sta in
+    lda #0
+    sta val
+    beq read_loop
+
+not_negative:
+    cmp #'0'
+    bcc read_loop
+    cmp #':'
+    bcs read_loop
+    sec
+    sbc #'0'
+    sta val
+    lda #1
+    sta in
+    jmp read_loop
+
+loaded:
+    ldx #0
+    jsr CHKIN
+
+    lda #<program 
+    sta mptr
+    lda #>program
+    sta mptr+1
+
+run_loop:
+    lda mptr
+    bmi done
+    ldy #0
+    lda (mptr),y
+    bmi input
+    iny
+    lda (mptr),y
+    bmi output
+    tax
+    lda program,x
+    pha
+    dey
+    lda (mptr),y
+    tax
+    pla
+    sec
+    sbc program,x
+    pha
+    iny
+    lda (mptr),y
+    tax
+    pla
+    sta program,x
+    bmi leq
+    beq leq
+next:
+    inc mptr
+    inc mptr
+    inc mptr
+    jmp run_loop
+leq:
+    iny
+    lda (mptr),y
+    sta mptr
+    jmp run_loop
+
+input:
+    iny
+    lda (mptr),y
+    tax
+    jsr CHRIN
+    sta program,x
+    jmp next
+
+output:
+    dey
+    lda (mptr),y
+    tax
+    lda program,x
+    jsr CHROUT
+    jmp next
+
+mul10:
+    pha
+    asl
+    sta tmp
+    pla
+    asl
+    asl
+    asl
+    clc
+    adc tmp
+    rts
+done:
+    brk
+
