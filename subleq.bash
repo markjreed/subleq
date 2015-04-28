@@ -1,5 +1,5 @@
 #!/usr/local/bin/bash
-read -a memory < <(tr -d $'\n' <"$1")
+read -a memory < <(tr $'\n' ' '<"$1")
 let ip=0
 while (( ip >= 0 && ip < ${#memory[@]} )); do
   let a=${memory[ip]} b=${memory[ip+1]} c=${memory[ip+2]} ip=ip+3
