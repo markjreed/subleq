@@ -1,5 +1,7 @@
 #!/bin/bash
 for f in subleq.*; do
-  echo -n $f:
-  (time ./"$f" punishment.sq >&/dev/null) 2>&1 | awk '/real/ {print $NF}'
+  if [ -x "$f" ]; then
+    echo -n $f:
+    (time ./"$f" punishment.sq >&/dev/null) 2>&1 | awk '/real/ {print $NF}'
+  fi
 done
