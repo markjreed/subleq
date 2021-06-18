@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 import sys
-memory = map(int, open(sys.argv[1]).read().replace("\n"," ")[:-1].split(' '))
+memory = [int(val) for val in open(sys.argv[1]).read().replace("\n"," ")[:-1].split(' ')]
 ip = 0
 while ip >= 0 and ip < len(memory):
   a, b, c = memory[ip:ip+3]
